@@ -4,20 +4,20 @@ import android.app.Activity
 import android.util.Log
 import com.android.billingclient.api.*
 import com.android.billingclient.api.BillingClient.BillingResponseCode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class BillingModule(val activity: Activity) {
 
     private val purchasesUpdatedListener = object : PurchasesUpdatedListener {
         override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
             // 구매 작업 결과는 여기서 처리.
+            Log.d("test", "onPurchasesUpdated")
             if (billingResult.responseCode == BillingResponseCode.OK && purchases != null) {
                 for (purchase in purchases) {
                     handlePurchase(purchase)
                 }
             } else if (billingResult.responseCode == BillingResponseCode.USER_CANCELED) {
                 // 사용자가 구매 흐름을 취소하여 발생한 오류를 처리합니다.
+                Log.d("test", "구매를 취소하였습니다.")
             } else {
                 // 기타 오류 코드 처리.
             }
@@ -85,8 +85,12 @@ class BillingModule(val activity: Activity) {
                     // launchBillingFlow() 호출에 성공하면 시스템에서 Google Play 구매 화면을 표시합니다
                     val responseCode = billingClient.launchBillingFlow(activity, flowParams).responseCode
                     when (responseCode) {
-                        BillingResponseCode.OK -> { Log.d("test", "결제 아이템 보여주기 성공") }
-                        else -> { Log.d("test", "결제 아이템 보여주기 실패") }
+                        BillingResponseCode.OK -> {
+                            Log.d("test", "결제 아이템 보여주기 성공")
+                        }
+                        else -> {
+                            Log.d("test", "결제 아이템 보여주기 실패")
+                        }
                     }
                 } else {
                     // 인앱 상품 쿼리 실패.
@@ -97,31 +101,26 @@ class BillingModule(val activity: Activity) {
     } // querySkuDetails
 
     private fun handlePurchase(purchase: Purchase) {
-        // BillingClient#queryPurchasesAsync 또는 PurchasesUpdatedListener에서 검색된 구매.
-        // val purchase : Purchase = ...;
         Log.d("test", "handlePurchase")
         Log.d("test", "token: ${purchase.purchaseToken}")
         Log.d("test", "orderId: ${purchase.orderId}")
         Log.d("test", "skus: ${purchase.skus}")
         Log.d("test", "purchaseTime: ${purchase.purchaseTime}")
-        // 구매를 확인합니다.
-        // 이 구매 토큰에 대한 권한이 아직 부여되지 않았는지 확인합니다.
-        // 사용자에게 권한을 부여합니다.
 
-        val consumeParams: ConsumeParams = ConsumeParams.newBuilder()
-                .setPurchaseToken(purchase.purchaseToken)
-                .build()
-
-        val listener: ConsumeResponseListener = object : ConsumeResponseListener {
-            override fun onConsumeResponse(billingResult: BillingResult, purchaseToken: String) {
-                if (billingResult.responseCode == BillingResponseCode.OK) {
-                    // 소비 작업의 성공을 처리합니다.
-
-                }
-            } // onConsumeResponse
+        val acknowledgePurchaseResponseListener = object : AcknowledgePurchaseResponseListener {
+            override fun onAcknowledgePurchaseResponse(billingResult: BillingResult) {
+                TODO("Not yet implemented")
+            }
         }
 
-        billingClient.consumeAsync(consumeParams, listener)
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+            if (!purchase.isAcknowledged) {
+                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                    .setPurchaseToken(purchase.purchaseToken)
+                    .build()
+                billingClient.acknowledgePurchase(acknowledgePurchaseParams, acknowledgePurchaseResponseListener)
+            }
+        }
     } // handlePurchase
 
 }
