@@ -52,10 +52,10 @@ class BillingModule(val activity: Activity) {
 
     private fun querySkuDetails() {
         val skuList = ArrayList<String>()
-        skuList.add("premium_upgrade")
-        skuList.add("gas")
+        skuList.add("1_month_season")
+        skuList.add("1_year_season")
         val params: SkuDetailsParams.Builder = SkuDetailsParams.newBuilder()
-        params.setSkusList(skuList).setType(BillingClient.SkuType.SUBS) // 인앱 or 구독 타입 설정
+        params.setSkusList(skuList).setType(BillingClient.SkuType.SUBS) // 인앱(SkuType.INAPP) or 구독(SkuType.SUBS) 타입 설정
 
         /*val skuDetailsResult = withContext(Dispatchers.IO) {
             billingClient.querySkuDetails(params.build())
@@ -67,17 +67,30 @@ class BillingModule(val activity: Activity) {
             // List에(skuDetailsList) 쿼리 결과를 저장합니다.
             override fun onSkuDetailsResponse(billingResult: BillingResult, skuDetailsList: MutableList<SkuDetails>?) {
                 // Process the result.
-                val skuDetails = skuDetailsList?.get(0) ?: return
+                val isItemChecked = skuDetailsList?.let {
+                    it.size != 0
+                } ?: false
 
-                val flowParams: BillingFlowParams = BillingFlowParams.newBuilder()
-                    .setSkuDetails(skuDetails)
-                    .build()
+                if (isItemChecked) {
+                    Log.d("test", "skuDetailsList.size: ${skuDetailsList!!.size}")
+                    skuDetailsList.forEach { skuDetail ->
+                        Log.d("test", skuDetail.sku)
+                    }
+                    val skuDetails = skuDetailsList[0]
 
-                // launchBillingFlow() 호출에 성공하면 시스템에서 Google Play 구매 화면을 표시합니다
-                val responseCode = billingClient.launchBillingFlow(activity, flowParams).responseCode
-                when (responseCode) {
-                    BillingResponseCode.OK -> { Log.d("test", "결제 아이템 보여주기 성공") }
-                    else -> { Log.d("test", "결제 아이템 보여주기 실패") }
+                    val flowParams: BillingFlowParams = BillingFlowParams.newBuilder()
+                        .setSkuDetails(skuDetails)
+                        .build()
+
+                    // launchBillingFlow() 호출에 성공하면 시스템에서 Google Play 구매 화면을 표시합니다
+                    val responseCode = billingClient.launchBillingFlow(activity, flowParams).responseCode
+                    when (responseCode) {
+                        BillingResponseCode.OK -> { Log.d("test", "결제 아이템 보여주기 성공") }
+                        else -> { Log.d("test", "결제 아이템 보여주기 실패") }
+                    }
+                } else {
+                    // 인앱 상품 쿼리 실패.
+                    return
                 }
             } // onSkuDetailsResponse
         })
@@ -86,7 +99,11 @@ class BillingModule(val activity: Activity) {
     private fun handlePurchase(purchase: Purchase) {
         // BillingClient#queryPurchasesAsync 또는 PurchasesUpdatedListener에서 검색된 구매.
         // val purchase : Purchase = ...;
-
+        Log.d("test", "handlePurchase")
+        Log.d("test", "token: ${purchase.purchaseToken}")
+        Log.d("test", "orderId: ${purchase.orderId}")
+        Log.d("test", "skus: ${purchase.skus}")
+        Log.d("test", "purchaseTime: ${purchase.purchaseTime}")
         // 구매를 확인합니다.
         // 이 구매 토큰에 대한 권한이 아직 부여되지 않았는지 확인합니다.
         // 사용자에게 권한을 부여합니다.
